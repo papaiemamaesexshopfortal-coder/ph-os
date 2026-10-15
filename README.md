@@ -2,55 +2,43 @@
 
 Aplicação web responsiva e instalável (PWA) para organizar clientes, catálogo, chamados, orçamentos, ordens de serviço, pagamentos e relatórios.
 
-## Criar os serviços necessários
+## Identidade configurada
 
-1. O repositório do aplicativo está em <https://github.com/papaiemamaesexshopfortal-coder/ph-os>.
-2. Crie um projeto Supabase exclusivo para PH SERVICE FORTAL em <https://supabase.com/dashboard/new>, por exemplo `ph-os-fortal`. Guarde a senha do banco em local seguro.
-3. No Supabase, abra **SQL Editor** e execute `supabase/migrations/20261015090000_initial_schema.sql`.
-4. Em **Authentication → Users**, convide/crie o primeiro usuário administrador. Copie o UUID desse usuário.
-5. No SQL Editor, inicialize a empresa, a conta e as categorias padrão. Não há preços no catálogo:
+- Empresa: PH SERVICE FORTAL
+- Região de atendimento: Fortaleza — CE
+- Telefone e WhatsApp: (86) 99949-0316
+- WhatsApp: <https://wa.me/558699490316>
+- Site: <https://ph-service-fortal.vercel.app/>
+- Avaliações: <https://g.page/r/CQPH4XoL5ddeEBM/review>
+- Projeto Supabase dedicado: hyixoosgozqyehegfzlh
+- Logo comercial: public/logo-ph-service-fortal.webp
 
-   ```sql
-   insert into public.companies (name)
-   values ('PH SERVICE FORTAL') returning id;
-   ```
+CPF/CNPJ, endereço completo, dados bancários e Pix permanecem vazios até serem informados pelo administrador. Os preços dos serviços também permanecem vazios.
 
-   Copie o UUID retornado e o UUID do usuário criado; substitua os dois valores abaixo:
+## Estado da configuração
 
-   ```sql
-   insert into public.company_members (company_id, user_id, role)
-   values ('UUID_DA_EMPRESA', 'UUID_DO_ADMIN', 'admin');
+A estrutura inicial está aplicada ao Supabase. As tabelas operacionais usam RLS. A empresa PH SERVICE FORTAL, suas seis categorias e os 20 serviços do catálogo inicial foram cadastrados sem preços fictícios.
 
-   insert into public.service_categories (company_id, name, sort_order) values
-   ('UUID_DA_EMPRESA','Presença Digital',1),
-   ('UUID_DA_EMPRESA','Informática',2),
-   ('UUID_DA_EMPRESA','TV Box e Entretenimento Digital',3),
-   ('UUID_DA_EMPRESA','Montagem de Móveis e Instalações',4),
-   ('UUID_DA_EMPRESA','Desenvolvimento de Aplicativos',5),
-   ('UUID_DA_EMPRESA','Sistemas de Mídia Indoor',6);
-   ```
+Falta criar o primeiro usuário administrador no Supabase Auth e vinculá-lo à empresa. A tela de login não permite cadastro público. No painel do Supabase, abra Authentication → Users e crie o usuário administrador. Depois, a associação à empresa deve ser feita por operação administrativa segura em company_members. Não coloque a chave service_role no frontend.
 
-7. Copie `.env.example` para `.env.local` e preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` com a URL e a chave **publicável** exibidas em **Project Settings → API Keys**. Nunca use `service_role` no frontend.
-8. Para rodar localmente: `npm install`, `npm run dev`. Para conferir a compilação: `npm run build`.
-9. Importe `papaiemamaesexshopfortal/ph-os` no Vercel e configure as mesmas duas variáveis de ambiente. Só publique para uso real depois de validar as funções e políticas pendentes descritas abaixo.
+## Desenvolvimento local
+
+1. Copie .env.example para .env.local.
+2. Configure VITE_SUPABASE_URL como https://hyixoosgozqyehegfzlh.supabase.co.
+3. Use somente a chave publicável do projeto em VITE_SUPABASE_PUBLISHABLE_KEY.
+4. Rode npm install, npm run dev e npm run build.
+
+Para publicar, importe https://github.com/papaiemamaesexshopfortal-coder/ph-os no Vercel e configure as mesmas variáveis de ambiente.
 
 ## O que já está implementado
 
-- Autenticação de acesso por e-mail e senha Supabase.
-- Isolamento por empresa via RLS; associação inicial de administrador feita pelo proprietário do projeto no SQL Editor.
-- Cadastro e pesquisa de clientes, catálogo de serviços sem preço fictício e abertura de chamados.
-- Criação inicial de orçamento com total calculado no PostgreSQL, valores monetários em centavos, validação de descontos e associação opcional a chamado.
-- Registro de pagamentos, dashboard com indicadores baseados em registros, relatório imprimível, configuração de dados comerciais e atalho de WhatsApp.
-- Layout responsivo, manifesto PWA e navegação adaptada a celular.
+- Autenticação por e-mail e senha Supabase.
+- Isolamento por empresa via RLS.
+- Cadastro e pesquisa de clientes, catálogo e abertura de chamados.
+- Orçamento inicial com total calculado no PostgreSQL e validações de valores.
+- Registro de pagamentos, dashboard e relatório imprimível.
+- Layout responsivo, manifesto PWA e atalho de WhatsApp.
 
 ## Pendências antes de uso comercial
 
-Este é o primeiro incremento funcional e a fundação de dados, não uma liberação comercial final. O schema já separa versões de orçamento e registra aprovações, contratos, OS, anexos e auditoria; a interface ainda precisa completar os fluxos de link seguro de aprovação/recusa, versões e múltiplos itens, geração e armazenamento privado de PDF, assinatura/aceite de contrato, criação e conclusão de OS, anexos com Storage privado, notificações, exportação CSV, fluxo de recuperação de senha, testes automatizados e revisão de segurança. O envio por WhatsApp permanece manual pelo link; abrir o WhatsApp nunca é tratado como confirmação de envio. Integração oficial de mensagens exige configuração autorizada. Revise o modelo contratual com assessoria jurídica antes do uso.
-
-## Comandos
-
-```bash
-npm install
-npm run dev
-npm run build
-```
+Este é o primeiro incremento funcional, não uma liberação comercial final. Faltam completar e validar aprovação segura de orçamentos, versões e múltiplos itens, PDFs, aceite de contrato, execução e conclusão de OS, anexos privados, notificações, exportação CSV, recuperação de senha, testes automatizados, publicação e revisão de segurança. O envio por WhatsApp permanece manual. Revise o modelo contratual com assessoria jurídica antes do uso.
