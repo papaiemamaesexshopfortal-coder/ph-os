@@ -13,4 +13,6 @@
 .topbar-brand{display:flex;align-items:center;gap:11px;min-width:0}.topbar-logo{width:46px;height:46px;object-fit:contain;border-radius:50%;background:#101b32;flex:none}@media(max-width:720px){.topbar-brand{gap:8px}.topbar-logo{width:42px;height:42px}.topbar-brand .eyebrow{font-size:8px;letter-spacing:1.15px}}
 
 .button-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.status-filter{display:flex;align-items:center;gap:8px;color:#637086;font-size:11px;font-weight:600}.status-filter select{border:1px solid #dce2e9;border-radius:7px;background:#fff;color:#26344a;padding:9px 11px;min-width:170px}
 @media(max-width:640px){.button-row{width:100%}.button-row button{flex:1}}
+@media(max-width:720px){.toolbar{align-items:stretch;flex-direction:column}.status-filter{justify-content:space-between}.status-filter select{flex:1}}
