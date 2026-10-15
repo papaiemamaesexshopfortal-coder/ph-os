@@ -39,7 +39,7 @@ Para desenvolvimento local, copie `.env.example` para `.env.local`, configure `V
 
 ## Pendências antes de uso comercial amplo
 
-- Ainda faltam orçamento com múltiplos itens, edição e novas versões comerciais; anexos privados e fotografias; checklist editável; comprovantes; notificações; exportação CSV; recuperação de senha; e testes automatizados de integração ponta a ponta.
+- Ainda faltam edição e novas versões comerciais de orçamentos; anexos privados e fotografias; checklist editável; comprovantes; notificações; exportação CSV; recuperação de senha; e testes automatizados de integração ponta a ponta.
 - O aceite de contrato é informado por um membro da empresa após confirmação recebida. Falta um portal seguro para o cliente aceitar diretamente; esse registro não é assinatura digital qualificada.
 - A proteção contra senhas vazadas está desativada nas configurações de Auth do Supabase. Ative em **Authentication → Settings → Password Security**.
 - O modelo contratual é simplificado e deve passar por revisão jurídica antes do uso comercial.
