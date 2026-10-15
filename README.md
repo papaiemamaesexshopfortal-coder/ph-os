@@ -1,6 +1,6 @@
 # PH O.S. — PH SERVICE FORTAL
 
-Aplicação web responsiva e instalável (PWA) para organizar clientes, catálogo, chamados, orçamentos, ordens de serviço, pagamentos e relatórios.
+Aplicação web responsiva e instalável (PWA) para organizar clientes, catálogo, chamados, orçamentos, contratos, ordens de serviço, pagamentos e relatórios.
 
 ## Identidade configurada
 
@@ -8,37 +8,40 @@ Aplicação web responsiva e instalável (PWA) para organizar clientes, catálog
 - Região de atendimento: Fortaleza — CE
 - Telefone e WhatsApp: (86) 99949-0316
 - WhatsApp: <https://wa.me/558699490316>
-- Site: <https://ph-service-fortal.vercel.app/>
+- Site institucional: <https://ph-service-fortal.vercel.app/>
 - Avaliações: <https://g.page/r/CQPH4XoL5ddeEBM/review>
-- Projeto Supabase dedicado: hyixoosgozqyehegfzlh
-- Logo comercial: public/logo-ph-service-fortal.webp
+- Projeto Supabase: `hyixoosgozqyehegfzlh`
+- Logo: `public/logo-ph-service-fortal.webp`
 
-CPF/CNPJ, endereço completo, dados bancários e Pix permanecem vazios até serem informados pelo administrador. Os preços dos serviços também permanecem vazios.
+CPF/CNPJ, endereço completo, dados bancários, Pix e preços de serviços permanecem vazios até serem informados pelo administrador.
 
-## Estado da configuração
+## Configuração
 
-A estrutura inicial está aplicada ao Supabase. As tabelas operacionais usam RLS. A empresa PH SERVICE FORTAL, suas seis categorias e os 20 serviços do catálogo inicial foram cadastrados sem preços fictícios.
+O projeto Supabase está conectado e o primeiro usuário administrador já está vinculado à empresa. As tabelas operacionais usam RLS. A chave `service_role` fica somente no ambiente server-side do Supabase; o frontend usa a chave publicável.
 
-Falta criar o primeiro usuário administrador no Supabase Auth e vinculá-lo à empresa. A tela de login não permite cadastro público. No painel do Supabase, abra Authentication → Users e crie o usuário administrador. Depois, a associação à empresa deve ser feita por operação administrativa segura em company_members. Não coloque a chave service_role no frontend.
+Aplicação: <https://ph-os-kappa.vercel.app>  
+Repositório: <https://github.com/papaiemamaesexshopfortal-coder/ph-os>
 
-## Desenvolvimento local
+Para desenvolvimento local, copie `.env.example` para `.env.local`, configure `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`, rode `npm install`, `npm run dev` e `npm run build`.
 
-1. Copie .env.example para .env.local.
-2. Configure VITE_SUPABASE_URL como https://hyixoosgozqyehegfzlh.supabase.co.
-3. Use somente a chave publicável do projeto em VITE_SUPABASE_PUBLISHABLE_KEY.
-4. Rode npm install, npm run dev e npm run build.
+## Implementado
 
-Para publicar, importe https://github.com/papaiemamaesexshopfortal-coder/ph-os no Vercel e configure as mesmas variáveis de ambiente.
+- Autenticação por e-mail e senha e isolamento por empresa via RLS.
+- Cadastro de clientes, catálogo e chamados com histórico de status.
+- Orçamento calculado no PostgreSQL com proteção contra valores negativos e desconto acima do total.
+- Link de aprovação com token de alta entropia, hash no banco, expiração e uso único. O portal exibe a versão exata e registra aprovação, recusa ou pedido de alteração com declaração de leitura.
+- A aprovação externa passa pela Edge Function `quote-public`; as rotinas privilegiadas de banco são acessíveis apenas ao servidor.
+- Contrato simplificado gerado como snapshot da versão aprovada e opção de impressão/PDF.
+- Registro administrativo auditado de confirmação do aceite do contrato e criação de OS vinculada.
+- Transições auditadas de início, conclusão e encerramento da OS. Despesas adicionais exigem registro de autorização do cliente.
+- Comprovante de OS imprimível, pagamentos, dashboard, relatórios imprimíveis e PWA.
+- WhatsApp é aberto com a mensagem e o link; o sistema não marca a mensagem como enviada.
 
-## O que já está implementado
+## Pendências antes de uso comercial amplo
 
-- Autenticação por e-mail e senha Supabase.
-- Isolamento por empresa via RLS.
-- Cadastro e pesquisa de clientes, catálogo e abertura de chamados.
-- Orçamento inicial com total calculado no PostgreSQL e validações de valores.
-- Registro de pagamentos, dashboard e relatório imprimível.
-- Layout responsivo, manifesto PWA e atalho de WhatsApp.
+- Ainda faltam orçamento com múltiplos itens, edição e novas versões comerciais; anexos privados e fotografias; checklist editável; comprovantes; notificações; exportação CSV; recuperação de senha; e testes automatizados de integração ponta a ponta.
+- O aceite de contrato é informado por um membro da empresa após confirmação recebida. Falta um portal seguro para o cliente aceitar diretamente; esse registro não é assinatura digital qualificada.
+- A proteção contra senhas vazadas está desativada nas configurações de Auth do Supabase. Ative em **Authentication → Settings → Password Security**.
+- O modelo contratual é simplificado e deve passar por revisão jurídica antes do uso comercial.
 
-## Pendências antes de uso comercial
-
-Este é o primeiro incremento funcional, não uma liberação comercial final. Faltam completar e validar aprovação segura de orçamentos, versões e múltiplos itens, PDFs, aceite de contrato, execução e conclusão de OS, anexos privados, notificações, exportação CSV, recuperação de senha, testes automatizados, publicação e revisão de segurança. O envio por WhatsApp permanece manual. Revise o modelo contratual com assessoria jurídica antes do uso.
+O sistema não processa cartões nem envia WhatsApp automaticamente. Verifique dados empresariais, privacidade, contrato e rotinas de backup antes de ampliar o uso.
