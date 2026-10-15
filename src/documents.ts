@@ -9,6 +9,14 @@ const date = (value: unknown) => {
   return onlyDate ? `${onlyDate[3]}/${onlyDate[2]}/${onlyDate[1]}` : new Date(raw).toLocaleDateString('pt-BR');
 };
 const method = (value: string) => ({ pix: 'Pix', cash: 'Dinheiro', debit: 'Cartão de débito', credit: 'Cartão de crédito', transfer: 'Transferência bancária', installment: 'Parcelado', entry_balance: 'Entrada + saldo', other: 'Outro' } as Record<string, string>)[value] || 'A combinar';
+const localPhone = (value: unknown) => {
+  let digits = String(value || '').replace(/\D/g, '');
+  if (digits.startsWith('55') && (digits.length === 12 || digits.length === 13)) digits = digits.slice(2);
+  if (digits.length === 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  if (digits.length === 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return digits;
+};
+
 
 class DocumentPage {
   doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -83,7 +91,7 @@ export function quotePdf(quote: Data, version: Data, client: Data, company?: Dat
 
 export function receiptPdf(payment: Data, quote: Data | undefined, version: Data | undefined, client: Data, company?: Data): File {
   const page = new DocumentPage(`Recibo de pagamento`, `Emitido em ${new Date().toLocaleDateString('pt-BR')}`);
-  page.section('Dados do recebimento'); page.line('Cliente', client?.name); page.line('Documento', client?.document); page.line('Referência', quote ? `ORC-${String(quote.quote_no).padStart(5, '0')}` : `Pagamento ${String(payment.id).slice(0, 8)}`);
+  page.section('Dados do recebimento'); page.line('Cliente', client?.name); page.line('Contato do cliente', client?.phone ? localPhone(client.phone) : ''); page.line('Documento', client?.document); page.line('Referência', quote ? `ORC-${String(quote.quote_no).padStart(5, '0')}` : `Pagamento ${String(payment.id).slice(0, 8)}`);
   page.line('Data do pagamento', payment.paid_at ? new Date(payment.paid_at).toLocaleString('pt-BR') : date(payment.due_at)); page.line('Forma de pagamento', method(payment.method));
   page.section('Serviço relacionado');
   const descriptions = (version?.items || []).map((item: Data) => `${item.description} (qtd. ${item.quantity})`);
