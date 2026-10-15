@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 type Data = Record<string, any>;
 const currency = (value: unknown) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
@@ -89,15 +90,81 @@ export function quotePdf(quote: Data, version: Data, client: Data, company?: Dat
   return page.finish(`${number}-v${quote.current_version}.pdf`);
 }
 
-export function receiptPdf(payment: Data, quote: Data | undefined, version: Data | undefined, client: Data, company?: Data): File {
-  const page = new DocumentPage(`Recibo de pagamento`, `Emitido em ${new Date().toLocaleDateString('pt-BR')}`);
-  page.section('Dados do recebimento'); page.line('Cliente', client?.name); page.line('Contato do cliente', client?.phone ? localPhone(client.phone) : ''); page.line('Documento', client?.document); page.line('Referência', quote ? `ORC-${String(quote.quote_no).padStart(5, '0')}` : `Pagamento ${String(payment.id).slice(0, 8)}`);
-  page.line('Data do pagamento', payment.paid_at ? new Date(payment.paid_at).toLocaleString('pt-BR') : date(payment.due_at)); page.line('Forma de pagamento', method(payment.method));
-  page.section('Serviço relacionado');
-  const descriptions = (version?.items || []).map((item: Data) => `${item.description} (qtd. ${item.quantity})`);
-  page.line('Serviços e itens', descriptions.join('; ') || payment.notes || 'Serviço não detalhado no lançamento.');
-  if (version?.description) page.line('Descrição do orçamento', version.description);
-  page.total('VALOR RECEBIDO', payment.amount);
-  page.line('Observação do lançamento', payment.notes); page.line('Empresa', company?.name || 'PH SERVICE FORTAL'); page.line('Contato', company?.phone || '(86) 99949-0316');
-  return page.finish(`recibo-${String(payment.id).slice(0, 8)}.pdf`);
+export async function receiptPdf(payment: Data, quote: Data | undefined, version: Data | undefined, client: Data, company?: Data): Promise<File> {
+  type ReceiptRow = { label: string; value: string; kind?: 'section' | 'total' };
+  const rows: ReceiptRow[] = [
+    { label: 'Dados do recebimento', value: '', kind: 'section' },
+    { label: 'Cliente', value: client?.name || '' },
+    { label: 'Contato do cliente', value: client?.phone ? localPhone(client.phone) : '' },
+    { label: 'Documento', value: client?.document || '' },
+    { label: 'Referência', value: quote ? `ORC-${String(quote.quote_no).padStart(5, '0')}` : `Pagamento ${String(payment.id).slice(0, 8)}` },
+    { label: 'Data do pagamento', value: payment.paid_at ? new Date(payment.paid_at).toLocaleString('pt-BR') : date(payment.due_at) },
+    { label: 'Forma de pagamento', value: method(payment.method) },
+    { label: 'Serviço relacionado', value: '', kind: 'section' },
+  ];
+  const items = (version?.items || []).map((item: Data) => `${item.description} (quantidade: ${item.quantity})`);
+  rows.push({ label: 'Serviços e itens', value: items.join('; ') || payment.notes || 'Serviço não detalhado no lançamento.' });
+  if (version?.description) rows.push({ label: 'Descrição do orçamento', value: String(version.description) });
+  rows.push(
+    { label: 'VALOR RECEBIDO', value: currency(payment.amount), kind: 'total' },
+    { label: 'Observação do lançamento', value: payment.notes || '' },
+    { label: 'Empresa', value: company?.name || 'PH SERVICE FORTAL' },
+    { label: 'Contato', value: company?.phone || '(86) 99949-0316' },
+  );
+
+  const root = document.createElement('div');
+  Object.assign(root.style, { position: 'fixed', left: '-10000px', top: '0', width: '302px', zIndex: '-1', background: '#fff' });
+  document.body.append(root);
+
+  const makeReceipt = () => {
+    const sheet = document.createElement('div');
+    Object.assign(sheet.style, { width: '302px', boxSizing: 'border-box', padding: '18px 18px 22px', background: '#fff', color: '#172033', fontFamily: 'Arial, sans-serif' });
+    const header = document.createElement('div');
+    Object.assign(header.style, { background: '#112649', color: '#fff', margin: '-18px -18px 18px', padding: '17px 18px 14px', borderBottom: '4px solid #c6a154', textAlign: 'center' });
+    const brand = document.createElement('div'); brand.textContent = company?.name || 'PH SERVICE FORTAL';
+    Object.assign(brand.style, { fontSize: '17px', lineHeight: '1.2', fontWeight: '700', letterSpacing: '.2px' });
+    const contact = document.createElement('div'); contact.textContent = company?.phone || '(86) 99949-0316';
+    Object.assign(contact.style, { fontSize: '11px', marginTop: '5px', color: '#e7ebf2' });
+    const title = document.createElement('div'); title.textContent = 'RECIBO DE PAGAMENTO';
+    Object.assign(title.style, { fontSize: '14px', fontWeight: '700', color: '#112649', marginTop: '0', textAlign: 'center' });
+    const subtitle = document.createElement('div'); subtitle.textContent = `Emitido em ${new Date().toLocaleDateString('pt-BR')}`;
+    Object.assign(subtitle.style, { fontSize: '10px', color: '#697386', marginTop: '5px', marginBottom: '15px', textAlign: 'center' });
+    header.append(brand, contact); sheet.append(header, title, subtitle);
+    const content = document.createElement('div'); Object.assign(content.style, { display: 'flex', flexDirection: 'column', gap: '8px' });
+    sheet.append(content);
+    const footer = document.createElement('div'); footer.textContent = 'Obrigado pela preferência!';
+    Object.assign(footer.style, { marginTop: '18px', paddingTop: '10px', borderTop: '1px dashed #8992a2', color: '#697386', fontSize: '10px', textAlign: 'center' });
+    sheet.append(footer); root.append(sheet); return { sheet, content };
+  };
+
+  try {
+    const { sheet, content } = makeReceipt();
+    for (const row of rows) {
+      if (!row.value && row.kind !== 'section') continue;
+      const block = document.createElement('div');
+      if (row.kind === 'section') {
+        block.textContent = row.label;
+        Object.assign(block.style, { color: '#112649', fontSize: '11px', fontWeight: '700', borderBottom: '1px dashed #8992a2', paddingBottom: '5px', marginTop: '7px', textTransform: 'uppercase' });
+      } else if (row.kind === 'total') {
+        Object.assign(block.style, { background: '#112649', color: '#fff', padding: '10px 9px', display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: '700', fontSize: '12px', textAlign: 'center', marginTop: '4px' });
+        const label = document.createElement('span'); label.textContent = row.label;
+        const value = document.createElement('span'); value.textContent = row.value; block.append(label, value);
+      } else {
+        Object.assign(block.style, { fontSize: '10px', lineHeight: '1.4', overflowWrap: 'anywhere', padding: '1px 0' });
+        const label = document.createElement('strong'); label.textContent = `${row.label}: `;
+        const value = document.createElement('span'); value.textContent = row.value; block.append(label, value);
+      }
+      content.append(block);
+    }
+    const canvas = await html2canvas(sheet, { scale: 2, backgroundColor: '#ffffff', logging: false, useCORS: true });
+    const image = canvas.toDataURL('image/jpeg', 0.96);
+    const pdfHeightMm = Math.max(60, (canvas.height / canvas.width) * 80);
+    const pdf = new jsPDF({ unit: 'mm', format: [80, pdfHeightMm], compress: true });
+    pdf.setProperties({ title: 'Recibo térmico 80 mm', subject: 'PH O.S. - PH SERVICE FORTAL', author: 'PH SERVICE FORTAL' });
+    pdf.addImage(image, 'JPEG', 0, 0, 80, pdfHeightMm, undefined, 'FAST');
+    const blob = pdf.output('blob');
+    return new File([blob], `recibo-80mm-${String(payment.id).slice(0, 8)}.pdf`, { type: 'application/pdf' });
+  } finally {
+    root.remove();
+  }
 }
