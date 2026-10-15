@@ -4,22 +4,11 @@ Aplicação web responsiva e instalável (PWA) para organizar clientes, catálog
 
 ## Criar os serviços necessários
 
-1. Crie um repositório GitHub privado em <https://github.com/new> com o nome `ph-os`.
-2. Crie um projeto Supabase em <https://supabase.com/dashboard/new> com o nome `ph-os-fortal`. Escolha a região mais próxima disponível e guarde a senha do banco em local seguro.
-3. No repositório recém-criado, envie o conteúdo desta pasta. Os comandos iniciais no computador com Git são:
-
-   ```bash
-   git init
-   git add .
-   git commit -m "Inicializa PH O.S."
-   git branch -M main
-   git remote add origin https://github.com/SEU-USUARIO/ph-os.git
-   git push -u origin main
-   ```
-
-4. No Supabase, abra **SQL Editor** e execute `supabase/migrations/20261015090000_initial_schema.sql`.
-5. Em **Authentication → Users**, convide/crie o primeiro usuário administrador. Copie o UUID desse usuário.
-6. No SQL Editor, inicialize a empresa, a conta e as categorias padrão. Não há preços no catálogo:
+1. O repositório do aplicativo está em <https://github.com/papaiemamaesexshopfortal-coder/ph-os>.
+2. Crie um projeto Supabase exclusivo para PH SERVICE FORTAL em <https://supabase.com/dashboard/new>, por exemplo `ph-os-fortal`. Guarde a senha do banco em local seguro.
+3. No Supabase, abra **SQL Editor** e execute `supabase/migrations/20261015090000_initial_schema.sql`.
+4. Em **Authentication → Users**, convide/crie o primeiro usuário administrador. Copie o UUID desse usuário.
+5. No SQL Editor, inicialize a empresa, a conta e as categorias padrão. Não há preços no catálogo:
 
    ```sql
    insert into public.companies (name)
@@ -43,7 +32,7 @@ Aplicação web responsiva e instalável (PWA) para organizar clientes, catálog
 
 7. Copie `.env.example` para `.env.local` e preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` com a URL e a chave **publicável** exibidas em **Project Settings → API Keys**. Nunca use `service_role` no frontend.
 8. Para rodar localmente: `npm install`, `npm run dev`. Para conferir a compilação: `npm run build`.
-9. Importe o repositório no Vercel e configure as mesmas duas variáveis de ambiente antes de publicar.
+9. Importe `papaiemamaesexshopfortal/ph-os` no Vercel e configure as mesmas duas variáveis de ambiente. Só publique para uso real depois de validar as funções e políticas pendentes descritas abaixo.
 
 ## O que já está implementado
 
