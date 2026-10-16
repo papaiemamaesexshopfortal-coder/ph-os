@@ -1,1 +1,16 @@
-{"name": "PH O.S. — Gestão de Serviços", "short_name": "PH O.S.", "start_url": "/", "display": "standalone", "background_color": "#f5f6f8", "theme_color": "#101b32", "lang": "pt-BR", "description": "Gestão de serviços da PH SERVICE FORTAL", "icons": [{"src": "/icon.jpg", "sizes": "512x512", "type": "image/jpeg", "purpose": "any"}]}
+{
+  "id": "/",
+  "name": "PH O.S. — Gestão de Serviços",
+  "short_name": "PH O.S.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#f5f6f8",
+  "theme_color": "#101b32",
+  "lang": "pt-BR",
+  "description": "Gestão de serviços da PH SERVICE FORTAL",
+  "icons": [
+    {"src": "/icon.jpg", "sizes": "512x512", "type": "image/jpeg", "purpose": "any"}
+  ]
+}
