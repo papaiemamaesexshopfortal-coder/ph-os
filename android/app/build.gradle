@@ -2,6 +2,11 @@ plugins {
     id 'com.android.application'
 }
 
+def releaseKeystoreFile = System.getenv('ANDROID_KEYSTORE_FILE')
+def releaseKeystorePassword = System.getenv('ANDROID_KEYSTORE_PASSWORD')
+def releaseKeyAlias = System.getenv('ANDROID_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('ANDROID_KEY_PASSWORD')
+
 dependencies {
     implementation 'androidx.core:core:1.13.1'
 }
@@ -14,7 +19,28 @@ android {
         applicationId 'br.com.phservicefortal.phos'
         minSdk 23
         targetSdk 35
-        versionCode 1
-        versionName '0.1.0-teste'
+        versionCode 2
+        versionName '1.0.0'
+    }
+
+    signingConfigs {
+        release {
+            if (releaseKeystoreFile) {
+                storeFile file(releaseKeystoreFile)
+                storePassword releaseKeystorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            versionNameSuffix '-teste'
+        }
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled false
+        }
     }
 }
