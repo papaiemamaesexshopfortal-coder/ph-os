@@ -1,5 +1,4 @@
 import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
 
 type Data = Record<string, any>;
 const currency = (value: unknown) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
@@ -112,59 +111,65 @@ export async function receiptPdf(payment: Data, quote: Data | undefined, version
     { label: 'Contato', value: company?.phone || '(86) 99949-0316' },
   );
 
-  const root = document.createElement('div');
-  Object.assign(root.style, { position: 'fixed', left: '-10000px', top: '0', width: '302px', zIndex: '-1', background: '#fff' });
-  document.body.append(root);
-
-  const makeReceipt = () => {
-    const sheet = document.createElement('div');
-    Object.assign(sheet.style, { width: '302px', boxSizing: 'border-box', padding: '18px 18px 22px', background: '#fff', color: '#172033', fontFamily: 'Arial, sans-serif' });
-    const header = document.createElement('div');
-    Object.assign(header.style, { background: '#112649', color: '#fff', margin: '-18px -18px 18px', padding: '17px 18px 14px', borderBottom: '4px solid #c6a154', textAlign: 'center' });
-    const brand = document.createElement('div'); brand.textContent = company?.name || 'PH SERVICE FORTAL';
-    Object.assign(brand.style, { fontSize: '17px', lineHeight: '1.2', fontWeight: '700', letterSpacing: '.2px' });
-    const contact = document.createElement('div'); contact.textContent = company?.phone || '(86) 99949-0316';
-    Object.assign(contact.style, { fontSize: '11px', marginTop: '5px', color: '#e7ebf2' });
-    const title = document.createElement('div'); title.textContent = 'RECIBO DE PAGAMENTO';
-    Object.assign(title.style, { fontSize: '14px', fontWeight: '700', color: '#112649', marginTop: '0', textAlign: 'center' });
-    const subtitle = document.createElement('div'); subtitle.textContent = `Emitido em ${new Date().toLocaleDateString('pt-BR')}`;
-    Object.assign(subtitle.style, { fontSize: '10px', color: '#697386', marginTop: '5px', marginBottom: '15px', textAlign: 'center' });
-    header.append(brand, contact); sheet.append(header, title, subtitle);
-    const content = document.createElement('div'); Object.assign(content.style, { display: 'flex', flexDirection: 'column', gap: '8px' });
-    sheet.append(content);
-    const footer = document.createElement('div'); footer.textContent = 'Obrigado pela preferência!';
-    Object.assign(footer.style, { marginTop: '18px', paddingTop: '10px', borderTop: '1px dashed #8992a2', color: '#697386', fontSize: '10px', textAlign: 'center' });
-    sheet.append(footer); root.append(sheet); return { sheet, content };
-  };
-
-  try {
-    const { sheet, content } = makeReceipt();
-    for (const row of rows) {
-      if (!row.value && row.kind !== 'section') continue;
-      const block = document.createElement('div');
-      if (row.kind === 'section') {
-        block.textContent = row.label;
-        Object.assign(block.style, { color: '#112649', fontSize: '11px', fontWeight: '700', borderBottom: '1px dashed #8992a2', paddingBottom: '5px', marginTop: '7px', textTransform: 'uppercase' });
-      } else if (row.kind === 'total') {
-        Object.assign(block.style, { background: '#112649', color: '#fff', padding: '10px 9px', display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: '700', fontSize: '12px', textAlign: 'center', marginTop: '4px' });
-        const label = document.createElement('span'); label.textContent = row.label;
-        const value = document.createElement('span'); value.textContent = row.value; block.append(label, value);
-      } else {
-        Object.assign(block.style, { fontSize: '10px', lineHeight: '1.4', overflowWrap: 'anywhere', padding: '1px 0' });
-        const label = document.createElement('strong'); label.textContent = `${row.label}: `;
-        const value = document.createElement('span'); value.textContent = row.value; block.append(label, value);
-      }
-      content.append(block);
+  // Render vector text directly. html2canvas is unreliable in Android WebView for
+  // long/off-screen receipts and can fail before the native share sheet is opened.
+  const left = 5;
+  const width = 70;
+  const prepared = rows.flatMap(row => {
+    if (!row.value && row.kind !== 'section') return [];
+    if (row.kind === 'section') return [{ row, lines: [row.label.toUpperCase()], font: 9, height: 8 }];
+    if (row.kind === 'total') return [{ row, lines: [row.label, row.value], font: 10, height: 15 }];
+    const font = 8.5;
+    return [{ row, lines: [] as string[], font, height: 0 }];
+  });
+  const measure = new jsPDF({ unit: 'mm', format: [80, 100] });
+  const layout = prepared.map(item => {
+    if (item.row.kind === 'section' || item.row.kind === 'total') return item;
+    const lines = measure.splitTextToSize(`${item.row.label}: ${item.row.value}`, width) as string[];
+    return { ...item, lines, height: Math.max(4.5, lines.length * 4.2 + 1) };
+  });
+  const headerHeight = 33;
+  const contentHeight = layout.reduce((sum, item) => sum + item.height + (item.row.kind === 'section' ? 2 : 1), 0);
+  const pdfHeightMm = Math.max(70, headerHeight + contentHeight + 17);
+  const pdf = new jsPDF({ unit: 'mm', format: [80, pdfHeightMm], compress: true });
+  const brand = company?.name || 'PH SERVICE FORTAL';
+  pdf.setProperties({ title: 'Recibo térmico 80 mm', subject: 'Recibo de pagamento', author: brand });
+  pdf.setFillColor(17, 38, 73); pdf.rect(0, 0, 80, 25, 'F');
+  pdf.setDrawColor(198, 161, 84); pdf.setLineWidth(1); pdf.line(0, 25, 80, 25);
+  pdf.setTextColor(255, 255, 255); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(11);
+  pdf.text(pdf.splitTextToSize(brand, 70), 40, 9, { align: 'center' });
+  pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8);
+  const phone = company?.phone || '(86) 99949-0316';
+  pdf.text(pdf.splitTextToSize(phone, 70), 40, 17, { align: 'center' });
+  pdf.setTextColor(17, 38, 73); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9);
+  pdf.text('RECIBO DE PAGAMENTO', 40, 31, { align: 'center' });
+  pdf.setTextColor(105, 115, 134); pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7.5);
+  pdf.text(`Emitido em ${new Date().toLocaleDateString('pt-BR')}`, 40, 36, { align: 'center' });
+  let y = 42;
+  for (const item of layout) {
+    const { row } = item;
+    if (row.kind === 'section') {
+      pdf.setTextColor(17, 38, 73); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(item.font);
+      pdf.text(row.label.toUpperCase(), left, y);
+      y += 4;
+      pdf.setDrawColor(137, 146, 162); pdf.setLineDashPattern([1, 1], 0); pdf.line(left, y, 75, y); pdf.setLineDashPattern([], 0);
+      y += 4;
+    } else if (row.kind === 'total') {
+      pdf.setFillColor(17, 38, 73); pdf.roundedRect(left, y - 2, width, item.height - 1, 1.5, 1.5, 'F');
+      pdf.setTextColor(255, 255, 255); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8.5);
+      pdf.text(row.label, 40, y + 3, { align: 'center' });
+      pdf.setFontSize(11); pdf.text(row.value, 40, y + 9, { align: 'center' });
+      y += item.height;
+    } else {
+      pdf.setTextColor(45, 55, 72); pdf.setFont('helvetica', 'normal'); pdf.setFontSize(item.font);
+      pdf.text(item.lines, left, y);
+      y += item.height;
     }
-    const canvas = await html2canvas(sheet, { scale: 2, backgroundColor: '#ffffff', logging: false, useCORS: true });
-    const image = canvas.toDataURL('image/jpeg', 0.96);
-    const pdfHeightMm = Math.max(60, (canvas.height / canvas.width) * 80);
-    const pdf = new jsPDF({ unit: 'mm', format: [80, pdfHeightMm], compress: true });
-    pdf.setProperties({ title: 'Recibo térmico 80 mm', subject: 'PH O.S. - PH SERVICE FORTAL', author: 'PH SERVICE FORTAL' });
-    pdf.addImage(image, 'JPEG', 0, 0, 80, pdfHeightMm, undefined, 'FAST');
-    const blob = pdf.output('blob');
-    return new File([blob], `recibo-80mm-${String(payment.id).slice(0, 8)}.pdf`, { type: 'application/pdf' });
-  } finally {
-    root.remove();
   }
+  y += 2;
+  pdf.setDrawColor(137, 146, 162); pdf.setLineDashPattern([1, 1], 0); pdf.line(left, y, 75, y); pdf.setLineDashPattern([], 0);
+  y += 5; pdf.setTextColor(105, 115, 134); pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8);
+  pdf.text('Obrigado pela preferência!', 40, y, { align: 'center' });
+  const blob = pdf.output('blob');
+  return new File([blob], `recibo-80mm-${String(payment.id).slice(0, 8)}.pdf`, { type: 'application/pdf' });
 }
