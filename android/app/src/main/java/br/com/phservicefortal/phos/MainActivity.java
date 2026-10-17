@@ -17,7 +17,7 @@ import android.webkit.WebViewClient;
 import androidx.core.content.FileProvider;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 public final class MainActivity extends Activity {
     private static final String APP_URL = "https://ph-os-kappa.vercel.app/";
@@ -80,24 +80,35 @@ public final class MainActivity extends Activity {
         public void sharePdf(String encoded, String fileName, String message) {
             runOnUiThread(() -> {
                 try {
+                    if (encoded == null || encoded.isEmpty()) throw new IllegalArgumentException("O PDF do recibo está vazio.");
                     File directory = new File(getCacheDir(), "shared");
                     if (!directory.exists() && !directory.mkdirs()) throw new IllegalStateException("Não foi possível preparar o PDF.");
                     File[] previous = directory.listFiles();
-                    if (previous != null) for (File item : previous) item.delete();
+                    if (previous != null) {
+                        long cutoff = System.currentTimeMillis() - 24L * 60L * 60L * 1000L;
+                        for (File item : previous) if (item.lastModified() < cutoff) item.delete();
+                    }
                     String safeName = fileName == null ? "recibo.pdf" : fileName.replaceAll("[^a-zA-Z0-9._-]", "_");
                     if (!safeName.toLowerCase().endsWith(".pdf")) safeName += ".pdf";
-                    File pdf = new File(directory, safeName);
+                    File pdf = new File(directory, UUID.randomUUID() + "-" + safeName);
                     byte[] bytes = Base64.decode(encoded, Base64.DEFAULT);
+                    if (bytes.length < 8 || bytes[0] != '%' || bytes[1] != 'P' || bytes[2] != 'D' || bytes[3] != 'F') {
+                        throw new IllegalArgumentException("O recibo gerado não é um PDF válido.");
+                    }
                     try (FileOutputStream output = new FileOutputStream(pdf)) { output.write(bytes); }
                     Uri uri = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".fileprovider", pdf);
                     Intent share = new Intent(Intent.ACTION_SEND);
                     share.setType("application/pdf");
                     share.putExtra(Intent.EXTRA_STREAM, uri);
+                    share.putExtra(Intent.EXTRA_SUBJECT, "Recibo de pagamento em PDF");
                     share.putExtra(Intent.EXTRA_TEXT, message == null ? "Segue o recibo em PDF." : message);
                     share.setClipData(ClipData.newUri(getContentResolver(), safeName, uri));
                     share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    startActivity(Intent.createChooser(share, "Compartilhar recibo em PDF"));
+                    Intent chooser = Intent.createChooser(share, "Compartilhar recibo em PDF");
+                    chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    startActivity(chooser);
                 } catch (Exception error) {
+                    android.util.Log.e("PHOS", "Falha ao compartilhar recibo PDF", error);
                     android.widget.Toast.makeText(MainActivity.this, "Não foi possível compartilhar o recibo. Tente novamente.", android.widget.Toast.LENGTH_LONG).show();
                 }
             });
